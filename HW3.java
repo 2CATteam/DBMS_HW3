@@ -64,8 +64,7 @@ public class HW3 {
 		try {
 			//Establish a connection from URL
 			final Connection connection = DriverManager.getConnection(URL);
-			//Because we run these statements potentially infinite times, it helps a lot to just go ahead and prepare them now.
-			final PreparedStatement insert = connection.prepareStatement("INSERT INTO Faculty values (?, ?, ?, ?);");
+			//Because we run this statement potentially infinite times, it helps a lot to just go ahead and prepare it now.
 			final PreparedStatement get = connection.prepareStatement("SELECT * FROM Faculty;");
 			
 			//Selection loop
@@ -78,11 +77,11 @@ public class HW3 {
 				switch (option) {
 				//Route selection 1 to option 1
 				case "1":
-					option1(connection, in, insert);
+					option1(connection, in);
 					break;
 				//Route selection 2 to option 2
 				case "2":
-					option2(connection, in, insert);
+					option2(connection, in);
 					break;
 				//Route selection 3 to option 3
 				case "3":
@@ -106,7 +105,7 @@ public class HW3 {
 	}
 	
 	//Method for option 1, inserting a new faculty with local averaging with math.
-	public static void option1(Connection conn, Scanner in, PreparedStatement insert) throws SQLException {		
+	public static void option1(Connection conn, Scanner in) throws SQLException {		
 		//Gets values from user
 		System.out.println("Give ID: ");
 		final int id = in.nextInt();
@@ -115,36 +114,21 @@ public class HW3 {
 		System.out.println("Give department: ");
 		final int dId = in.nextInt();
 		
-		//Asks the DB what the average salary of the department is
-		PreparedStatement statement = conn.prepareStatement("SELECT AVG(salary) FROM Faculty WHERE deptid = ?;");
-		statement.setInt(1, dId);
-		ResultSet result = statement.executeQuery();
-		//Read results. If the department does not exist, the average becomes 0.
-		result.next();
-		final float avg = result.getFloat(1);
-		
-		//Do the math required to calculate the new salary
-		float newSalary = avg;
-		if (avg > 50000) {
-			newSalary *= .9;
-		} else if (avg < 30000) {
-		} else {
-			newSalary *= .8;
-		}
+		//Prep our execution statement
+		PreparedStatement statement = conn.prepareStatement("EXEC option1 @fid = ?, @name = ?, @dept_id = ?;");
 		
 		//Set insert parameters
-		insert.setInt(1, id);
-		insert.setString(2, name);
-		insert.setInt(3, dId);
-		insert.setFloat(4, newSalary);
+		statement.setInt(1, id);
+		statement.setString(2, name);
+		statement.setInt(3, dId);
 		
 		//Execute the update and print how many rows were updated
-		int updated = insert.executeUpdate();
+		int updated = statement.executeUpdate();
 		System.out.println(String.format("Did thing, %d rows updated", updated));
 	}
 	
 	//Method for option 2, inserting a new faculty with global averaging
-	public static void option2(Connection conn, Scanner in, PreparedStatement insert) throws SQLException {
+	public static void option2(Connection conn, Scanner in) throws SQLException {
 		//Get values from user
 		System.out.println("Give ID: ");
 		final int id = in.nextInt();
@@ -155,22 +139,17 @@ public class HW3 {
 		System.out.println("Give department to ignore: ");
 		final int ignoreDept = in.nextInt();
 		
-		//Ask the DBMS what the average salary is excluding the indicated department
-		PreparedStatement statement = conn.prepareStatement("SELECT AVG(salary) FROM Faculty WHERE deptid != ?;");
-		statement.setInt(1, ignoreDept);
-		ResultSet result = statement.executeQuery();
-		//Read the results
-		result.next();
-		final float avg = result.getFloat(1);
+		//Prepare to call our function
+		PreparedStatement statement = conn.prepareStatement("EXEC option2 @fid = ?, @name = ?, @dept_id = ?, @ignore_dept = ?;");
 		
 		//Set update parameters
-		insert.setInt(1, id);
-		insert.setString(2, name);
-		insert.setInt(3, dId);
-		insert.setFloat(4, avg);
+		statement.setInt(1, id);
+		statement.setString(2, name);
+		statement.setInt(3, dId);
+		statement.setInt(4, ignoreDept);
 		
 		//Execute update and print number of rows affected
-		int updated = insert.executeUpdate();
+		int updated = statement.executeUpdate();
 		System.out.println(String.format("Did thing, %d rows updated", updated));
 	}
 
